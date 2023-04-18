@@ -1,0 +1,300 @@
+
+# --------------------------------- PARTNERS -------------------------------- #
+                Partner 1:  Nora A-Rahim     Login narahi01 
+                Partner 2:  Angela Shen      Login ashen05
+
+# ------------------------------ ACKNOWLEDGMENTS ---------------------------- #
+        Thank you Tina for your insight about Seq_T and how int hint really 
+                        works under the hood in Seq_new()
+
+        Thank you Trevor for helping us improve our unmapping algorithm! 
+
+                Thank you Valerie for dealing with our bs <3
+
+# ------------------------------- FUNCTIONALITY ----------------------------- #
+        As far as we know, everything has been implemented correctly.
+
+# -------------------------- DEPARTURES FROM DESIGN ------------------------- #
+        Registers and Segments are represented as Seq_Ts instead of Register_T
+                                and Segment_T 
+        We made this choice after talking to Tina about the utility and purpose
+        of structs, which are mainly used to package pieces of data together. 
+        Although incomplete structs can be used to achieve polymorphism, 
+        we agreed that representing segments and registers as Hanson Sequences
+        would be an efficient and clear way to represent such components of the
+        Universal Machine and would prevent potentially unecessary layers 
+        of indirection, especially when performance is of concern.
+
+        Created a fetcher module that performs file reading and instruction 
+                                  packing 
+
+# ----------------------------- ARCHITECTURE ----------------------------- #
+        um.c 
+        ----
+        um.c is the driver file, which deduces the number of program 
+        instructions using the size of the input file. Passes an uninitialized
+        array of this size to fetcher.c, where it will get populated with 
+        packed program instructions. 
+
+        fetcher.c & fetcher.h
+        ---------------------
+        fetcher.c simulates the instruction fetcher employed by the Universal 
+        Machine's CPU. It reads instructions 4 bytes at a time from stdin, and
+        packs those bytes into 32-bit words to be executed by the executor 
+        module.
+
+        executor.c & executor.h
+        -----------------------
+        executor.c decodes and executes the instructions read in and packed by
+        fetcher.c. It behaves as a sub-driver program with respect to um.c 
+        for executing the instructions. It relies on functionality from  
+        instructionSet.c, registers.c, and memory.c in order to perform 
+        instruction execution.
+
+        memory.c & memory.h 
+        --------------------
+        memory.c simulates the segmented memory system employed by the 
+        Universal Machine, representing segments as Hanson Sequences. memory.c
+        is responsible for defining instructions for memory-related 
+        functionality of the Universal Machine. memory.c interacts 
+        with registers.c in order to do create, rmeove, duplicate, and modify
+        segments.
+        
+        registers.c & registers.h
+        ------------------------
+        registers.c simulates the eight General Purpose Registers (GPRs) 
+        employed by the Universal Machine, representing registers as 
+        Hanson Sequences.
+
+        instructionSet.c & instructionSet.h
+        -----------------------------------
+        Defines 8 core instructions that compose the Universal Machine's 
+        arithmetic, logical, and i/o instruction set architecture. Interacts 
+        with registers.c in order to modify registers necessary to such 
+        instructions.
+
+
+# -------------------------- 50 MILLION INSTRUCTIONS ------------------------ #
+
+We know that sandmark is about 2,113,497,564 instructions and we were able to
+execute it within 287 seconds. Thus we can estimate that it takes 6.79 seconds
+to execute 50 million instructions. 
+
+# --------------------------------------------------------------------------- #
+#                                   UM TESTS                                  #
+# --------------------------------------------------------------------------- #
+
+conditional_positive:
+        Tests that register r[A] is assigned the value of r[B] if r[C] != 0
+        Loads a positive value into r[C] and outputs r[A] after calling 
+        conditionalMove()
+
+conditional_negative:
+        Tests that register r[A] is not assigned the value of r[B] if r[C] == 0
+        Loads 0 into r[C] and outputs r[A] after calling 
+        conditionalMove()
+
+conditional_maximum:
+        Tests that register r[A] is assigned the value of r[B] if r[C] and r[B]
+        are assigned the maximum value, 2^32 - 1
+        Loads a 33554431 into r[C] and r[B] and outputs r[A] after calling 
+        conditionalMove()
+
+load_segment:
+        Tests the segmented load instructions. Loads a value into a r[C] and 
+        ensures that segStore sucessfully assigns that value to 
+        $m[[r[A]][r[B]]]. Then, loads the value from $m[[r[A]][r[B]]]
+        into a different register useing segLoad, and outputs the register to 
+        ensure segLoad's functionality. 
+
+seg_storage:
+        Tests that segStore works when mapping segments that recycle previously
+        unmapped segment IDs. Ends by calling segLoad and outputting the 
+        relevant register in order to ensure that the value at $m[[r[A]][r[B]]] 
+        was successfully assigned using segStore.
+        
+add_commutative:
+        Tests that our implementation of the add instruction exhibits 
+        commutativity. Loads values into [A] and r[B], adds r[A] + r[B],
+        stores the result in r[C], then adds r[B] + r[A] and stores the result 
+        in r[D]. Divides r[C]/r[D] and outputs the result to verify quotient of 
+        1.
+
+add_zeroes:
+        Tests 0 + 0 = 0. Loads 0 into r[A] and r[B], adds them, and outputs 
+        the result, veriying sum of 0.
+
+add_zero:
+        Tests x + 0 = x. Loads x into r[A] and 0 into r[B], adds r[A] + r[B],
+        and outputs the result, veriying sum of x.
+
+add_to_zero:
+        Tests 0 + x = x. Loads 0 into r[A] and x into r[B], adds r[A] + r[B], 
+        and outputs the result, veriying sum of x.
+
+add_overflow:
+        Tests 1 + 2^32 - 1 = 0. Loads 2^32 - 1 into r[A] and 1 into r[B], adds 
+        r[A] + r[B],  and outputs the result, veriying sum of 0 indicating 
+        overflow.
+
+multiply_commutative:
+        Tests that our implementation of the multiply instruction exhibits 
+        commutativity. Loads values into [A] and r[B], multiplies r[A] * r[B],
+        stores the result in r[C], then adds r[B] * r[A] and stores the result 
+        in r[D]. Divides r[C]/r[D] and outputs the result to verify quotient of
+        1.
+
+multiply_zeroes:
+        Tests 0 * 0 = 0. Loads 0 into r[A] and r[B], multiplies them, and  
+        outputs the result, veriying product of 0.
+
+multiply_zero:
+        Tests x * 0 = x. Loads x into r[A] and 0 into r[B], multiplies 
+        r[A] * r[B],  and outputs the result, veriying product of 0.
+
+multiply_against_zero:
+        Tests 0 * x = x. Loads 0 into r[A] and x into r[B], multiplies 
+        r[A] * r[B],  and outputs the result, veriying product of 0.
+
+multiply_overflow:
+        Tests 2^16 * 2^16 = 0. Loads 2^16 into r[A] and r[B], multiplies them,
+        and outputs the result, veriying product of 0 indicating overflow.
+
+divide_noncommunative:
+        Tests that our implementation of the divide instruction does not  
+        exhibit commutativity. Loads values into [A] and r[B], r[A] / r[B],
+        stores the result in r[C], then divides r[B] / r[A] and stores the
+        result in r[D]. Divides r[C]/r[D] and outputs the
+        result to verify quotient of 1.
+
+divide_against_zero:
+        Tests 0 / x = 0. Loads 0 into r[A] and x into r[B], divides 
+        r[A] / r[B],  and outputs the result, veriying quotient of 0.
+
+divide_round_five:
+        Tests that our implementation of the divide instruction discards
+        the remainder and returns only the integer part of the quotient. 
+        Loads 23 into r[A] and 4 into r[B], divides r[A] / r[B], and outputs 
+        the result, veriying quotient of 5.
+        
+divide_round_zero:
+        Tests that our implementation of the divide instruction discards
+        the remainder and returns only the integer part of the quotient. 
+        Loads 4 into r[A] and 23 into r[B], divides r[A] / r[B], and outputs
+        the result, veriying quotient of 0.
+        
+divide_readable:
+        Tests that division works by outputting a readable ASCII character. 
+        Loads 140 into r[A] and 2 into r[B], divides r[A] / r[B], and outputs
+        the result, veriying output of 'P'.
+
+divide_maximum:
+        Tests that division of 2^32-1 / 2^32-1 = 1. Loads 2^32 - 1 into r[A] 
+        and r[B], divides r[A] / r[B], and outputs the result, veriying output 
+        of 1.
+        
+divide_invalid:
+        Ensures that division of x / 0 raises in a Checked Runtime Error. 
+        Loads x into r[A] and 0 into r[B], divides r[A] / r[B], and verifies
+        assertion is raised.
+
+nand_o: 
+        Ensures that values nanded with 0 are correct. Loads 0 into 
+        a register, nands it, and stores the result in a register that is 
+        then outputted.
+
+nand_invalid:
+        Ensures that the nanded value is correct when nanding the same
+        value with itself.
+
+
+build_halt_test:
+        This is the same test given to us in lab. Ensures that halt quits the
+        program with no memory leaks. 
+
+build_verbose_halt_test:
+        This is the same test given to us in lab. Ensures that halt quits and
+        does not execute any instructions that may exist after the halt
+        instruction.
+
+map_unamp:
+        This test ensures that our mapping and unmapping instructions works
+        correctly. Loads 3 into r[C] and maps 8 segments of length r[C], and 
+        unmaps them. Run with valgrind to ensure memory is successfully 
+        allocated and ddeallocated.
+
+unmap_seg:
+        This test ensures that our unmapping function can unmap large segments.
+        Loads 800 into r[C] and maps 1 segment of length r[C], and proceeds to
+        unmaps it. Run with valgrind to ensure memory is successfully 
+        allocated and ddeallocated.
+        
+unmap_to_map:
+        This test ensures that our mapping function has the capacity to reuse
+        recently unmapped segment identifiers on a 'Most Recently Unmapped'
+        basis. Loads 3 into r[C] and maps several segments of length r[C],  
+        unmaps a few of them, and re-maps with the same segment identifiers
+        that were recently unmapped. Run with valgrind to ensure memory is 
+        successfully allocated and ddeallocated.
+        
+unmap_invalid:
+        This test ensures that our unmapping function raises a Checked Runtime
+        Error if a user attemps to unmap a segment that doesn't exist. Loads 
+        0 into a register r[C] and unmaps a segment with ID = 1. 
+
+readable_input:
+        Tests a variety of readable inputs in the range [33, 126] read from 
+        stdin.
+
+unreadable_input:
+        Tests a variety of unreadable inputs in the range [0, 255] read 
+        from stdin. 
+        
+invalid_input:
+        Tests a variety of invalid inputs outside the range [0, 255] read 
+        from stdin, ensuring a Checked Runtime Error is raised. 
+
+readable_output:
+        Outputs a register that contains the value of numbers added together.
+        Ensures that readable characters can be outputted to stdout correctly.
+
+unreadable_output:
+        Outputs a register with nothing loaded into it, which is 0 and should
+        not be readable. Ensures that we can output unreadable characters.
+
+invalid_output:
+        Tests a variety of invalid outputs outside the range [0, 255]
+        attempting to be written to stdout, ensuring a Checked Runtime
+        Error is raised. 
+
+load_program_maps:
+        This test tests if our loadprogram implementation works. We first
+        write all the instructions and then place a halt then an output
+        instruction after a load program instruction. We then map a new segment
+        and segload/store output first and halt second into a new segment. 
+        Load program then takes the created segment and replaces the 0thsegment
+        with it. If our load value works as intended then we should be able see
+        the output since it is placed prior to the halt, but if load value
+        doesn't work we would see no output. 
+
+load_value:
+        Loads 80 into a register and outputs it. Should appear as 'P' on 
+        stdout.
+        
+load_minimum:
+        Loads 0 into a register and outputs it. Simply confirms that 0
+        can be put in a register.
+
+load_readable:
+        Loads 66 into a register and outputs it. Should appear as 'b' on 
+        stdout.
+        
+load_addition:
+        Loads multiple values into registers and adds them and stores them in
+        other registers and outputs that register. Confirms that add and
+        loadval both work.
+
+# ------------------------------- TIME WE TOOK ------------------------------ #
+                Analyzing Assignment: 2 hours
+                Preparing Design: 15 hours 
+                Solving Problems After Analysis: 30 hours 
