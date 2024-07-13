@@ -1,33 +1,4 @@
 
-# --------------------------------- PARTNERS -------------------------------- #
-                Partner 1:  Nora A-Rahim     Login narahi01 
-                Partner 2:  Angela Shen      Login ashen05
-
-# ------------------------------ ACKNOWLEDGMENTS ---------------------------- #
-        Thank you Tina for your insight about Seq_T and how int hint really 
-                        works under the hood in Seq_new()
-
-        Thank you Trevor for helping us improve our unmapping algorithm! 
-
-                Thank you Valerie for dealing with our bs <3
-
-# ------------------------------- FUNCTIONALITY ----------------------------- #
-        As far as we know, everything has been implemented correctly.
-
-# -------------------------- DEPARTURES FROM DESIGN ------------------------- #
-        Registers and Segments are represented as Seq_Ts instead of Register_T
-                                and Segment_T 
-        We made this choice after talking to Tina about the utility and purpose
-        of structs, which are mainly used to package pieces of data together. 
-        Although incomplete structs can be used to achieve polymorphism, 
-        we agreed that representing segments and registers as Hanson Sequences
-        would be an efficient and clear way to represent such components of the
-        Universal Machine and would prevent potentially unecessary layers 
-        of indirection, especially when performance is of concern.
-
-        Created a fetcher module that performs file reading and instruction 
-                                  packing 
-
 # ----------------------------- ARCHITECTURE ----------------------------- #
         um.c 
         ----
